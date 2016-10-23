@@ -1,0 +1,132 @@
+<?php
+/**
+ * @file
+ * Movies search module.
+ */
+
+/**
+ * Implements hook_entity_property_info_alter
+ */
+function movies_search_entity_property_info_alter(&$info) {
+  $info['node']['properties']['field_movie_directors_text'] = array(
+    'type' => 'text',
+    'label' => t('Movie director name'),
+    'sanitized' => TRUE,
+    'getter callback' => 'field_movie_directors_search_api_getter_callback',
+  );
+  $info['node']['properties']['field_title_text'] = array(
+    'type' => 'text',
+    'label' => t('Movie title string'),
+    'sanitized' => TRUE,
+    'getter callback' => 'field_title_text_search_api_getter_callback',
+  );
+  $info['node']['properties']['field_movie_directors_text_string'] = array(
+    'type' => 'text',
+    'label' => t('Movie director name text'),
+    'sanitized' => TRUE,
+    'getter callback' => 'field_movie_directors_text_string_api_getter_callback',
+  );
+}
+
+/**
+ * Getter callback for field_movie_directors_search_api_getter_callback property.
+ * movie Directors name for Fill text search
+ */
+function field_movie_directors_search_api_getter_callback($item) {
+  if ($item->type == 'movies') {
+    if (!empty($item->field_movie_directors)) {
+      $movie_directors_name = '';
+      foreach ($item->field_movie_directors[LANGUAGE_NONE] as $key => $directors_tid) {
+        $directors_term_obj = taxonomy_term_load($directors_tid['tid']);
+        $movie_directors_name .= $directors_term_obj->name . ', ';
+      }
+      return rtrim($movie_directors_name, ', ');
+    }
+  }
+}
+
+/**
+ * Getter callback for field_title_text_search_api_getter_callback property.
+ * Movie title to display in search result & table sortable options.
+ */
+function field_title_text_search_api_getter_callback($item) {
+  if ($item->type == 'movies') {
+    if (isset($item->title)) {
+      return $item->title;
+    }
+  }
+}
+
+/**
+ * Getter callback for field_movie_directors_text_string_api_getter_callback property.
+ * movie Directors name to display in search result & table sortable options.
+ */
+function field_movie_directors_text_string_api_getter_callback($item) {
+  if ($item->type == 'movies') {
+    if (!empty($item->field_movie_directors)) {
+      $movie_directors_name = '';
+      foreach ($item->field_movie_directors[LANGUAGE_NONE] as $key => $directors_tid) {
+        $directors_term_obj = taxonomy_term_load($directors_tid['tid']);
+        $movie_directors_name .= $directors_term_obj->name . ', ';
+      }
+      return rtrim($movie_directors_name, ', ');
+    }
+  }
+}
+
+/**
+ * Implements hook_form_alter
+ */
+function movies_search_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'views_exposed_form') {
+    switch ($form['#id']) {
+      case 'views-exposed-form-imdb-movies-page':
+        // Add placeholder For Movie Search text field
+        $form['search_api_views_fulltext']['#attributes']['placeholder'] = t('Search');
+
+        // Create new form element for IMDb rating
+        $form['field_imdb_rating']['#type'] = 'select';
+        $form['field_imdb_rating']['#size'] = NULL;
+        $form['field_imdb_rating']['#options'] = array('All' => t('Rating'), '1' => '>9', '2' => '7.5-9', '3' => '5-7.5', '4' => '<5');
+        $form['field_imdb_rating']['#default_value'] = t('All');
+
+        // Create widget for IMDb rating and add it into expose form.
+        $imdb_rating_field_info = array(
+          'filter-field_imdb_rating' => array('value' => 'field_imdb_rating'),
+        );
+        $form['#info'] = array_merge(array_diff_assoc($form['#info'], $imdb_rating_field_info), $imdb_rating_field_info);
+        break;
+    }
+  }
+}
+
+/**
+ * Implements hook_search_api_query_alter
+ */
+function movies_search_search_api_query_alter(SearchApiQueryInterface $query) {
+  if (!empty($_GET) && isset($_GET['field_imdb_rating']) && $_GET['field_imdb_rating'] != 'All') {
+    $imdb_rating_option = check_plain($_GET['field_imdb_rating']);
+    if (isset($imdb_rating_option) && $imdb_rating_option) {
+      switch ($imdb_rating_option) {
+        case 1:
+          $query->condition('field_imdb_rating', 9, '>');
+          break;
+        case 2:
+          $or = $query->createFilter('AND');
+          $or->condition('field_imdb_rating', 7.5, '>');
+          $or->condition('field_imdb_rating', 9, '<=');
+          $query->filter($or);
+          break;
+        case 3:
+          $or = $query->createFilter('AND');
+          $or->condition('field_imdb_rating', 5, '>');
+          $or->condition('field_imdb_rating', 7.5, '<=');
+          $query->filter($or);
+          break;
+        case 4:
+          $query->condition('field_imdb_rating', 5, '<');
+          break;
+      }
+    }
+  }
+}

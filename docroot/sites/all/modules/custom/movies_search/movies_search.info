@@ -1,0 +1,8 @@
+name = "IMDb Movies Search"
+description = "Module for IMDb movies search."
+package = "Custom"
+core = 7.x
+
+dependencies[] = apachesolr
+dependencies[] = search_api
+dependencies[] = views

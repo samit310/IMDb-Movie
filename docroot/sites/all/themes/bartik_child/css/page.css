@@ -1,0 +1,16 @@
+div.node-movies{
+        font-size: 125%;
+}
+.movie-body{
+    float: left;
+    width: 50%;
+}
+.movie-poster{
+    float: right;
+}
+.movie-rating{
+    margin-bottom: 25px;
+}
+.movies-taxo-links ul.links a{
+    text-decoration: underline;
+}

@@ -1,0 +1,8 @@
+name = "Migrate IMDb Movies"
+description = "Import IMDb movies from json file."
+package = "Custom"
+core = 7.x
+
+dependencies[] = migrate
+
+files[] = includes/ImdbMovies.inc
